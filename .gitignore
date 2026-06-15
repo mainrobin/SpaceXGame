@@ -1,0 +1,8 @@
+
+# DevCortex CLI
+.mcp.json
+opencode.json
+.cursor/mcp.json
+.devcortex-link.json
+.env
+*.local

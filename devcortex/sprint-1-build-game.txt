@@ -1,0 +1,349 @@
+# SpaceX: Mission to Mars — Claude Code Build Prompt
+
+Save to: `docs/prompts/sprint-1-build-game.txt`
+
+---
+
+You are building **SpaceX: Mission to Mars** — a browser-based side-scrolling
+runner game delivered as a single self-contained `index.html` file. No frameworks,
+no build tools, no external dependencies. Vanilla JavaScript and HTML5 Canvas API
+only.
+
+This project is managed in DevCortex. All requirements and acceptance criteria are
+available via the MCP server.
+
+---
+
+## Step 1 — MCP setup
+
+1. Call `dc_health` — confirm DevCortex MCP is live
+2. Call `dc_get_spec` — read the full technical specification (architecture,
+   constants, entity definitions, collision system, audio approach)
+3. Call `dc_get_backlog` — retrieve all 12 requirements
+4. For each requirement, call `dc_get_requirement` with `includeNotes: true`
+   to read every AC before writing any code
+5. Read `docs/ConOps.md` — understand the game vision, theme, and user context
+
+Do NOT write any code until you have read the spec and all 12 requirements in full.
+
+---
+
+## Step 2 — Implementation plan
+
+Before writing code, output a brief implementation plan in this format:
+
+```
+BUILD ORDER:
+1. [REQ] — [what you will implement] — [estimated complexity: low/med/high]
+...
+
+STRUCTURE INSIDE index.html:
+- Constants block
+- [list major JS sections]
+
+RENDERING APPROACH:
+- [how you will draw each major visual element]
+
+AUDIO APPROACH:
+- [confirm Web Audio API synthesis, no files]
+
+RISKS:
+- [any AC that may need clarification before implementation]
+```
+
+Wait for my confirmation before proceeding to Step 3.
+
+---
+
+## Step 3 — Build
+
+Implement the complete game in a single `index.html` file. Follow this internal
+code structure exactly — use comments as section dividers so the file is readable:
+
+```javascript
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+// All magic numbers defined here as named constants. No hardcoded values
+// anywhere else in the file.
+
+// ── GAME STATE ─────────────────────────────────────────────────────────────
+// GameState enum, all mutable game variables initialised here.
+
+// ── INPUT HANDLING ─────────────────────────────────────────────────────────
+// Keyboard, mouse, and touch event listeners.
+
+// ── AUDIO ──────────────────────────────────────────────────────────────────
+// Web Audio API context and all synthesis functions.
+// Graceful degradation if AudioContext unavailable.
+
+// ── ENTITY CLASSES ─────────────────────────────────────────────────────────
+// Base Entity class, then Obstacle and Collectible subclasses.
+// All visual rendering as methods on the class (draw method per entity type).
+
+// ── PLAYER ─────────────────────────────────────────────────────────────────
+// Player state object and update function.
+
+// ── BACKGROUND ─────────────────────────────────────────────────────────────
+// Three parallax layers + Mars approach transition.
+
+// ── SPAWNING SYSTEM ────────────────────────────────────────────────────────
+// Spawn timer, pattern definitions, spawn logic.
+
+// ── COLLISION DETECTION ────────────────────────────────────────────────────
+// AABB check function, collision response.
+
+// ── SPECIAL EVENTS ─────────────────────────────────────────────────────────
+// Booster separation, solar storm, Starlink constellation, Mars approach.
+
+// ── HUD ────────────────────────────────────────────────────────────────────
+// Score, lives, distance, speed multiplier, floating text.
+
+// ── SCREEN RENDERERS ───────────────────────────────────────────────────────
+// renderTitle(), renderCountdown(), renderGameOver(), renderPause()
+
+// ── UPDATE ─────────────────────────────────────────────────────────────────
+// Master update(deltaTime) function — gates by game state.
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+// Master render() function — always executes.
+
+// ── GAME LOOP ──────────────────────────────────────────────────────────────
+// requestAnimationFrame loop with deltaTime calculation.
+
+// ── INITIALISATION ─────────────────────────────────────────────────────────
+// Canvas setup, resize handler, first frame kick-off.
+```
+
+---
+
+## Step 4 — Implementation rules
+
+### Code quality
+- All magic numbers MUST be named constants in the CONSTANTS block
+- No `var` — use `const` and `let` only
+- All functions have a single clear responsibility
+- Comments explain WHY not WHAT — the code explains what
+- No `console.log` left in the final file
+
+### Canvas and rendering
+- All visuals rendered with Canvas 2D API primitives (fillRect, arc, beginPath,
+  lineTo, etc.) — no external images, no CSS sprites, no SVG files
+- Starship: sleek silver/white elongated body, pointed nose, engine bell at rear,
+  blue engine glow when thrusting, rendered with path operations
+- Background: three-layer parallax starfield (small white dots at varying sizes
+  and speeds), seamless horizontal tiling
+- Each obstacle type has a visually distinct and recognisable appearance:
+  - Debris: jagged grey/dark polygon, irregular edges
+  - Satellite: rectangular silver body with extending solar panel rectangles
+  - Asteroid: brown/grey irregular circle using multiple arc segments
+  - Tesla Roadster: red car silhouette with wheels — recognisable immediately
+  - Paperwork Wall: solid grey wall full canvas height with gap — label "NASA
+    REGULATIONS" in small text on the wall
+- Each collectible visually communicates its purpose:
+  - Fuel canister: yellow cylinder shape
+  - Starlink: flat white rectangle with small antenna lines
+  - Dragon capsule: white rounded cone/capsule with small circular windows
+  - X Post: black square with white X logo
+
+### Physics feel
+- Gravity should feel weighty — the ship drops noticeably when thrust released
+- Thrust should feel punchy — immediate upward acceleration
+- The game should feel like piloting a heavy rocket, not a featherweight bird
+- Tune GRAVITY and THRUST constants until the feel matches this description
+
+### Audio synthesis
+- Use `AudioContext` with `OscillatorNode` and `GainNode` only
+- Thruster: low-pitched sawtooth oscillator (~80Hz), volume tied to input state
+- Collision: white noise burst via `AudioBuffer` with random values, 0.3s duration
+- Pickup: ascending sine wave, 220Hz → 440Hz over 0.15s
+- Roadster chord: three sine oscillators at E4/G#4/B4, 0.5s with fast decay
+- Booster separation: filtered sweep from 200Hz → 800Hz over 0.8s
+- Solar storm: dissonant drone, two oscillators at 60Hz and 63Hz (beat frequency)
+- All sounds: wrap in try/catch, fail silently
+
+### Game feel details
+- Invincibility flash: alternate sprite opacity between 1.0 and 0.3 every 100ms
+- Floating score text: spawns at collectible position, moves up 40px, fades to 0
+  opacity, over 1 second — use array of active floating texts
+- Screen flash on collision: draw full-canvas red rect at 0.4 opacity for 200ms
+- HUD font: `'Courier New', monospace` — fits the mission control aesthetic
+- Event messages: centre canvas, yellow `#FFD700`, 20px, fade out over 2 seconds
+- Countdown numbers: large (80px), white, scale from 1.5× to 1.0× as they appear
+
+### Entity spawning details
+- SOLO pattern: one obstacle at random y within safe zone (top/bottom 60px margins)
+- HIGH_LOW pattern: two obstacles, one in top third, one in bottom third
+- WAVE pattern: three obstacles at y positions forming a sine-wave vertical pattern
+- CORRIDOR pattern: two obstacles with 180px vertical gap between them, player
+  threads the needle
+- SWARM pattern: four small debris items scattered across full canvas height
+- Safe spawn zone for y: between 40px and CANVAS_HEIGHT - 40px
+- For patterns with gaps, ensure gap is always navigable (minimum 140px clear)
+
+### Tesla Roadster special treatment
+- Spawn it moving slightly faster than other obstacles (1.5× base speed)
+- It should drift very slightly up and down (±5px sine wave over time)
+- The "Starman" dummy should be visible as a small figure in the driver seat
+- Roadster leaves a faint particle trail (small white dots that fade quickly)
+
+### Mars approach transition
+- At score 5000: begin overlaying a subtle reddish tint on the background
+- At score 6500: distant Mars surface becomes visible at the bottom of the canvas
+  (a rust-red curved horizon line with subtle terrain detail)
+- At score 8000: the full background is Mars surface — rust sky with darker ground
+- The transition should feel earned and visually dramatic
+
+---
+
+## Step 5 — DevCortex verification
+
+Work through requirements in this order:
+
+```
+REQ-12 (Technical Constraints) — verify first, before adding features
+REQ-01 (Game Loop)
+REQ-02 (Player Control)
+REQ-03 (Procedural Spawning)
+REQ-04 (Obstacles)
+REQ-05 (Collectibles)
+REQ-06 (Collision Detection)
+REQ-07 (Progressive Difficulty)
+REQ-08 (Special Events)
+REQ-09 (Scoring & HUD)
+REQ-10 (Game State Screens)
+REQ-11 (Audio)
+```
+
+Start REQ-12 first because the technical constraints (single file, no dependencies,
+file:// protocol, <100KB) must hold from the first line of code — not be bolted on
+at the end.
+
+For each requirement:
+1. `dc_update_requirement_status(reqId, "IN_PROGRESS")`
+2. Implement all ACs for that requirement
+3. Self-verify each AC against the implementation — be specific:
+   - "AC3: deltaTime capped at 0.05 — confirmed, line ~45: `Math.min(dt, 0.05)`"
+4. `dc_record_verification` for each AC individually (PASS / FAIL / BLOCKED)
+5. `dc_log_implementation` with:
+   - `implSource: "AGENT"`
+   - `model: "claude-sonnet-4-5"` (or whichever model is running this session)
+   - `notes: [brief description of implementation approach for this REQ]`
+
+---
+
+## Step 6 — Self-QA checklist
+
+Before calling any requirement VERIFIED, confirm:
+
+**File constraints:**
+- [ ] Single `index.html` — no other files required to run the game
+- [ ] No `<script src="...">` or `<link rel="stylesheet" href="...">` tags
+- [ ] No `fetch()`, `XMLHttpRequest`, or any network calls
+- [ ] File opens correctly via `file://` protocol (no server required)
+- [ ] File size under 100KB — check with: `wc -c index.html`
+
+**Gameplay:**
+- [ ] Title screen → spacebar/click → countdown → gameplay works
+- [ ] Thruster holds ship up, gravity pulls it down when released
+- [ ] Ship cannot exit canvas boundaries (top and bottom)
+- [ ] All 5 obstacle types appear during a play session
+- [ ] All 4 collectible types appear during a play session
+- [ ] Collision decrements lives, invincibility flash activates
+- [ ] Three lives lost → Game Over screen
+- [ ] Game Over → R key or click → new game starts correctly
+- [ ] P key pauses, P key resumes
+- [ ] Speed multiplier visibly increases over time
+- [ ] Spawn rate visibly increases over time
+
+**Special events:**
+- [ ] Booster separation fires at score 1000 (exactly once)
+- [ ] Solar storm fires ~every 90 seconds
+- [ ] Starlink constellation fires after 5 consecutive Starlinks
+- [ ] Mars background transition begins at score 5000
+
+**HUD:**
+- [ ] Score increments each frame
+- [ ] Lives display correctly (♥ icons, not numbers)
+- [ ] Distance % increases with score (100% = score 8000)
+- [ ] Speed multiplier shown
+- [ ] Floating score text appears and fades on collectible pickup
+
+**Audio:**
+- [ ] No audio errors in browser console
+- [ ] Game runs without errors if audio is blocked
+
+**Code quality:**
+- [ ] No `console.log` statements
+- [ ] No hardcoded numbers outside the CONSTANTS block
+- [ ] All section divider comments present
+
+---
+
+## Step 7 — Final deliverable
+
+The completed `index.html` should be the only file needed to play the game.
+
+After all 12 requirements are verified in DevCortex, output:
+
+```
+BUILD COMPLETE
+
+File: index.html
+Size: [X KB]
+
+Requirements verified: 12/12
+ACs verified: [X]/87
+
+Session summary:
+- [brief description of implementation approach]
+- [any ACs marked FAIL or BLOCKED with reasons]
+- [any interesting technical decisions made]
+
+To play: open index.html in any browser.
+To deploy: push to GitHub, enable GitHub Pages on main branch root.
+```
+
+---
+
+## Reference — key constants from Spec.md
+
+```javascript
+// Canvas
+const CANVAS_WIDTH  = 900;
+const CANVAS_HEIGHT = 500;
+
+// Player physics
+const GRAVITY        = 600;   // px/s²
+const THRUST         = -800;  // px/s²
+const MAX_VELOCITY_Y = 500;   // px/s terminal velocity
+
+// Difficulty
+const SPEED_INITIAL   = 1.0;
+const SPEED_MAX       = 3.2;
+const SPEED_RAMP_RATE = 0.04; // per second
+
+// Spawning
+const SPAWN_INTERVAL_BASE  = 2.2;  // seconds
+const SPAWN_INTERVAL_MIN   = 0.8;  // seconds floor
+const OBSTACLE_PROBABILITY = 0.70;
+
+// Score milestones
+const BOOSTER_SEPARATION_SCORE = 1000;
+const MARS_APPROACH_SCORE      = 5000;
+const MARS_ARRIVAL_SCORE       = 8000;
+
+// Player
+const INVINCIBLE_DURATION  = 2.0;   // seconds
+const HITBOX_SCALE         = 0.8;   // 80% of sprite
+
+// Collectible bonuses
+const SCORE_FUEL     = 100;
+const SCORE_STARLINK = 200;
+
+// Special events
+const SOLAR_STORM_INTERVAL   = 90;  // seconds base
+const SOLAR_STORM_VARIANCE   = 20;  // ±seconds
+const SOLAR_STORM_DURATION   = 3;   // seconds
+const CONSTELLATION_COUNT    = 5;   // Starlinks needed
+const CONSTELLATION_DURATION = 10;  // seconds multiplier active
+const CONSTELLATION_MULT     = 2;   // score multiplier
+```
