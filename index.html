@@ -1131,26 +1131,46 @@ function renderTitle(ctx) {
   drawBackground(ctx);
   ctx.save();
 
+  const cx = CANVAS_WIDTH / 2;
+
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 40px "Courier New", monospace';
   ctx.textAlign = 'center';
-  ctx.fillText('SPACEX: MISSION TO MARS', CANVAS_WIDTH / 2, 150);
+  ctx.fillText('SPACEX: MISSION TO MARS', cx, 58);
 
   ctx.font = '17px "Courier New", monospace';
   ctx.fillStyle = '#99aacc';
-  ctx.fillText("Help Elon reach Mars. Don't hit the Roadster.", CANVAS_WIDTH / 2, 188);
+  ctx.fillText("Help Elon reach Mars. Don't hit the Roadster.", cx, 93);
 
-  _drawTitleShip(ctx, CANVAS_WIDTH / 2, 285);
+  // Ship centred between subtitle (y=93) and launch prompt (y=326)
+  _drawTitleShip(ctx, cx, 210);
 
   const blink = Math.floor(Date.now() / 500) % 2 === 0;
   ctx.fillStyle = blink ? '#fff' : 'rgba(255,255,255,0.4)';
   ctx.font = '19px "Courier New", monospace';
-  ctx.fillText('PRESS SPACE OR CLICK TO LAUNCH', CANVAS_WIDTH / 2, 390);
+  ctx.fillText('PRESS SPACE OR CLICK TO LAUNCH', cx, 326);
+
+  ctx.font = '12px "Courier New", monospace';
+  ctx.fillStyle = '#7bba8a';
+  ctx.fillText(
+    'COLLECT  ▸  Fuel Cell +100pts  •  Starlink Sat +200pts  •  Dragon Capsule +1 life  •  X-Post slows speed',
+    cx, 352
+  );
+  ctx.fillStyle = '#c07a66';
+  ctx.fillText(
+    'AVOID    ▸  Debris  •  Satellites  •  Asteroids  •  Paperwork walls  •  Tesla Roadster  — each costs 1 life',
+    cx, 374
+  );
+  ctx.fillStyle = '#4a5a6a';
+  ctx.fillText(
+    'TIP: collect 5 Starlink in a row to trigger a 2× score bonus',
+    cx, 396
+  );
 
   ctx.fillStyle = '#444';
   ctx.font = '11px "Courier New", monospace';
-  ctx.textAlign = 'right';
-  ctx.fillText('Built with DevCortex • devcortexai.com', CANVAS_WIDTH - 8, CANVAS_HEIGHT - 8);
+  ctx.textAlign = 'center';
+  ctx.fillText('Built with DevCortex • devcortexai.com', cx, CANVAS_HEIGHT - 8);
 
   ctx.restore();
 }
