@@ -4,7 +4,7 @@ A browser-based side-scrolling runner game. Pilot Starship through increasingly 
 
 No installation. No account. No dependencies. Just open and play.
 
-**[Play Now](https://mainrobin.github.io/spacex-mission-to-mars/)** | **[Built with DevCortex](https://www.devcortexai.com)**
+**[Play Now](https://game.devcortexai.com/)** | **[Built with DevCortex](https://www.devcortexai.com)**
 
 ---
 
@@ -12,7 +12,7 @@ No installation. No account. No dependencies. Just open and play.
 
 Open `index.html` in any browser. That's it.
 
-**Or play online:** [mainrobin.github.io/spacex-mission-to-mars](https://mainrobin.github.io/spacex-mission-to-mars/)
+**Or play online:** [game.devcortexai.com](https://game.devcortexai.com)
 
 Compatible with Chrome, Edge, Firefox, and Safari on desktop and mobile.
 
@@ -136,8 +136,6 @@ Or just double-click `index.html` in your file manager.
 | Firefox 90+ | Fully supported |
 | Safari 15+ | Fully supported |
 | Mobile Chrome/Safari | Supported -- landscape orientation recommended |
-
-Run remotely https://game.devcortexai.com
 
 ---
 
