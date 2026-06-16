@@ -9,10 +9,17 @@
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; background: #000; display: flex; justify-content: center; align-items: center; overflow: hidden; }
     #gameCanvas { display: block; image-rendering: crisp-edges; }
+    #game-wrapper { position: relative; line-height: 0; }
+    #dc-footer { position: absolute; bottom: 4px; left: 0; right: 0; text-align: center; pointer-events: none; line-height: normal; color: #444; font-family: 'Courier New', monospace; }
+    #dc-footer a { pointer-events: auto; display: inline-block; vertical-align: middle; }
+    #dc-logo { vertical-align: middle; cursor: pointer; }
   </style>
 </head>
 <body>
-<canvas id="gameCanvas"></canvas>
+<div id="game-wrapper">
+  <canvas id="gameCanvas"></canvas>
+  <div id="dc-footer"><span>Built with </span><a href="https://www.devcortexai.com" target="_blank" rel="noopener noreferrer"><img id="dc-logo" src="devcortex-logo-dark.svg" alt="DevCortex"></a></div>
+</div>
 <script>
 // ── CONSTANTS ──────────────────────────────────────────────────────────────
 const CANVAS_WIDTH             = 900;
@@ -1150,7 +1157,7 @@ function renderTitle(ctx) {
   ctx.font = '19px "Courier New", monospace';
   ctx.fillText('PRESS SPACE OR CLICK TO LAUNCH', cx, 326);
 
-  ctx.font = '12px "Courier New", monospace';
+  ctx.font = '10px "Courier New", monospace';
   ctx.fillStyle = '#7bba8a';
   ctx.fillText(
     'COLLECT  ▸  Fuel Cell +100pts  •  Starlink Sat +200pts  •  Dragon Capsule +1 life  •  X-Post slows speed',
@@ -1166,11 +1173,6 @@ function renderTitle(ctx) {
     'TIP: collect 5 Starlink in a row to trigger a 2× score bonus',
     cx, 396
   );
-
-  ctx.fillStyle = '#444';
-  ctx.font = '11px "Courier New", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('Built with DevCortex • devcortexai.com', cx, CANVAS_HEIGHT - 8);
 
   ctx.restore();
 }
@@ -1460,10 +1462,18 @@ function resizeCanvas() {
   const ratio = CANVAS_WIDTH / CANVAS_HEIGHT;
   let cw = ww, ch = ww / ratio;
   if (ch > wh) { ch = wh; cw = wh * ratio; }
+  cw = Math.floor(cw); ch = Math.floor(ch);
   canvas.width = CANVAS_WIDTH;
   canvas.height = CANVAS_HEIGHT;
-  canvas.style.width = Math.floor(cw) + 'px';
-  canvas.style.height = Math.floor(ch) + 'px';
+  canvas.style.width = cw + 'px';
+  canvas.style.height = ch + 'px';
+  const wrapper = document.getElementById('game-wrapper');
+  wrapper.style.width = cw + 'px';
+  wrapper.style.height = ch + 'px';
+  const scale = ch / CANVAS_HEIGHT;
+  const footer = document.getElementById('dc-footer');
+  footer.style.fontSize = Math.round(11 * scale) + 'px';
+  document.getElementById('dc-logo').style.height = Math.round(16 * scale) + 'px';
   scaleX = 1; scaleY = 1;
 }
 

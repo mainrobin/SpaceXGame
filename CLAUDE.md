@@ -1,5 +1,5 @@
 # DevCortex Agent Constitution
-<!-- Generated: 2026-06-15T22:50:46.937Z -->
+<!-- Generated: 2026-06-16T05:11:06.339Z -->
 
 ## MCP Connection
 

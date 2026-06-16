@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 52" fill="none">
+  <!-- Mark: dark mode — brackets and outlines white, blue cell retained -->
+  <g transform="scale(0.236364)">
+    <!-- Left bracket -->
+    <rect x="16" y="22" width="26" height="16" rx="3" fill="#ffffff"/>
+    <rect x="16" y="22.1" width="16" height="176" rx="3.6" fill="#ffffff"/>
+    <rect x="16" y="188" width="26" height="16" rx="3" fill="#ffffff"/>
+    <!-- Right bracket -->
+    <rect x="178" y="22" width="26" height="16" rx="3" fill="#ffffff"/>
+    <rect x="194" y="22" width="16" height="177.9" rx="3.6" fill="#ffffff"/>
+    <rect x="178" y="188" width="32" height="16" rx="3" fill="#ffffff"/>
+    <!-- Top-left square (filled blue = verified — same in both modes) -->
+    <rect x="42" y="44.0" width="67.84" height="67.27" rx="14.92" fill="#4472b4"/>
+    <!-- Top-right square -->
+    <rect x="120" y="47.57" width="61.22" height="59.41" rx="13.47" stroke="#ffffff" stroke-width="7.66" fill="none"/>
+    <!-- Bottom-left square -->
+    <rect x="44" y="120.24" width="61.22" height="59.41" rx="13.47" stroke="#ffffff" stroke-width="7.66" fill="none"/>
+    <!-- Bottom-right square -->
+    <rect x="120" y="120.24" width="61.22" height="59.41" rx="13.47" stroke="#ffffff" stroke-width="7.66" fill="none"/>
+  </g>
+  <!-- Wordmark: dark mode — Dev lighter blue, Cortex white -->
+  <g transform="translate(66, 7) scale(0.50)">
+    <text
+      x="-0.533"
+      y="66.921"
+      font-size="85.8604"
+      font-family="'Nunito Sans', 'Source Sans Pro', system-ui, sans-serif"
+      font-weight="800"
+      transform="scale(0.91891, 1.08825)">
+      <tspan fill="#6b9fd4">Dev</tspan><tspan fill="#ffffff">Cortex</tspan>
+    </text>
+  </g>
+</svg>
