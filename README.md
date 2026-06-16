@@ -86,14 +86,6 @@ You start with 3 lives shown as heart icons top-right. Each collision costs one 
 
 ---
 
-## Screenshots
-
-![Title Screen](docs/screenshots/title.png)
-![Gameplay](docs/screenshots/gameplay.png)
-![Mars Approach](docs/screenshots/mars-approach.png)
-
----
-
 ## Technical Details
 
 The entire game is a single `index.html` file -- no build step, no dependencies, no backend.
