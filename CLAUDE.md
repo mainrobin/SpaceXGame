@@ -1,5 +1,5 @@
 # DevCortex Agent Constitution
-<!-- Generated: 2026-06-15T02:09:03.383Z -->
+<!-- Generated: 2026-06-15T22:50:46.937Z -->
 
 ## MCP Connection
 
@@ -63,26 +63,14 @@ Fetch each requirement on demand as you implement it — one at a time.
 _Update this section if session ends mid-sprint so the next session can resume._
 
 ```
-Last completed:  REQ-011 (Audio) — all 12 requirements VERIFIED 2026-06-15
+Last completed:  — (fresh start)
 In progress:     —
-Next action:     Sprint 1 complete. All 98 ACs recorded PASS in DevCortex.
-                 index.html is the deliverable (43KB, opens via file://).
+Next action:     Run dc_health to confirm MCP is live, then fetch first REQ
 ```
 
 ## Active Requirements
 
-- REQ-001: Game Loop and Delta Time (MUST)
-- REQ-002: Player Control (Starship) (MUST)
-- REQ-003: Procedural Spawning (MUST)
-- REQ-004: Obstacles (MUST)
-- REQ-005: Collectibles (MUST)
-- REQ-006: Collision Detection (MUST)
-- REQ-007: Progressive Difficulty (MUST)
-- REQ-008: Special Events (MUST)
-- REQ-009: Scoring and HUD (MUST)
-- REQ-010: Game State Screens (MUST)
-- REQ-011: Audio (MUST)
-- REQ-012: Technical Constraints (MUST)
+No approved requirements yet.
 
 ## Open Issues
 

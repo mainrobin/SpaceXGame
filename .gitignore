@@ -6,3 +6,4 @@ opencode.json
 .devcortex-link.json
 .env
 *.local
+localonly/

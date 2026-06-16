@@ -18,8 +18,8 @@
 const CANVAS_WIDTH             = 900;
 const CANVAS_HEIGHT            = 500;
 const PLAYER_X                 = 150;
-const PLAYER_W                 = 60;
-const PLAYER_H                 = 30;
+const PLAYER_W                 = 72;
+const PLAYER_H                 = 44;
 const PLAYER_MIN_Y             = 20;
 const PLAYER_BOTTOM_MARGIN     = 20;
 const GRAVITY                  = 600;
@@ -51,6 +51,8 @@ const BOOSTER_ANIM_DURATION    = 2.0;
 const FLASH_DURATION           = 0.2;
 const FLOAT_TEXT_DURATION      = 1.0;
 const FLOAT_TEXT_RISE          = 40;
+const MIN_OBSTACLE_SPACING     = 90;
+const MIN_PAPERWORK_SPACING    = 150;
 const PAPERWORK_GAP_BASE       = 180;
 const PAPERWORK_GAP_MIN        = 130;
 const PAPERWORK_W              = 22;
@@ -200,6 +202,7 @@ function getAudioCtx() {
   if (!audioCtx) {
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
   }
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
   return audioCtx;
 }
 
@@ -256,15 +259,18 @@ function playPickupSound() {
   try {
     const ctx = getAudioCtx();
     if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(440, ctx.currentTime + 0.15);
-    g.gain.setValueAtTime(0.3, ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.15);
+    const sr = ctx.sampleRate;
+    const n = Math.floor(sr * 0.15);
+    const buf = ctx.createBuffer(1, n, sr);
+    const d = buf.getChannelData(0);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const freq = 220 + 220 * (i / n);
+      d[i] = Math.sin(2 * Math.PI * ph) * (1 - i / n) * 0.3;
+      ph += freq / sr;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start();
   } catch (e) {}
 }
 
@@ -272,16 +278,28 @@ function playRoadsterChord() {
   try {
     const ctx = getAudioCtx();
     if (!ctx) return;
-    [329.63, 415.30, 493.88].forEach((freq) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      g.gain.setValueAtTime(0.18, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(); osc.stop(ctx.currentTime + 0.5);
-    });
+    const _play = () => {
+      try {
+        [329.63, 415.30, 493.88].forEach(freq => {
+          const len = Math.floor(ctx.sampleRate * 0.6);
+          const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+          const data = buf.getChannelData(0);
+          for (let i = 0; i < len; i++) {
+            data[i] = Math.sin(2 * Math.PI * freq * (i / ctx.sampleRate)) *
+                      Math.pow(1 - i / len, 0.5) * 0.3;
+          }
+          const src = ctx.createBufferSource();
+          src.buffer = buf;
+          const g = ctx.createGain();
+          g.gain.value = 0.5;
+          src.connect(g);
+          g.connect(ctx.destination);
+          src.start();
+        });
+      } catch (e2) {}
+    };
+    if (ctx.state === 'running') { _play(); }
+    else { ctx.resume().then(_play).catch(() => {}); }
   } catch (e) {}
 }
 
@@ -289,17 +307,19 @@ function playBoosterSound() {
   try {
     const ctx = getAudioCtx();
     if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const filter = ctx.createBiquadFilter();
-    const g = ctx.createGain();
-    osc.type = 'sawtooth';
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(200, ctx.currentTime);
-    filter.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.8);
-    g.gain.setValueAtTime(0.4, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-    osc.connect(filter); filter.connect(g); g.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + 0.8);
+    const sr = ctx.sampleRate;
+    const n = Math.floor(sr * 0.8);
+    const buf = ctx.createBuffer(1, n, sr);
+    const d = buf.getChannelData(0);
+    let ph = 0;
+    for (let i = 0; i < n; i++) {
+      const freq = 200 + 600 * (i / n);
+      const env = Math.exp(-(i / n) * 4);
+      d[i] = ((ph % 1) * 2 - 1) * env * 0.3;
+      ph += freq / sr;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start();
   } catch (e) {}
 }
 
@@ -307,16 +327,18 @@ function playSolarStormSound() {
   try {
     const ctx = getAudioCtx();
     if (!ctx) return;
-    [60, 63].forEach((freq) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      g.gain.setValueAtTime(0.18, ctx.currentTime);
-      g.gain.linearRampToValueAtTime(0, ctx.currentTime + SOLAR_STORM_DURATION);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(); osc.stop(ctx.currentTime + SOLAR_STORM_DURATION);
-    });
+    const sr = ctx.sampleRate;
+    const n = Math.floor(sr * SOLAR_STORM_DURATION);
+    const buf = ctx.createBuffer(1, n, sr);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) {
+      const t = i / sr;
+      const env = 1 - t / SOLAR_STORM_DURATION;
+      d[i] = (Math.sin(2 * Math.PI * 60 * t) +
+               Math.sin(2 * Math.PI * 63 * t)) * env * 0.1;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buf; src.connect(ctx.destination); src.start();
   } catch (e) {}
 }
 
@@ -371,11 +393,12 @@ class Obstacle extends Entity {
 
   _drawDebris(ctx) {
     const { x, y, width: w, height: h } = this;
-    if (!this.extra.pts) this.extra.pts = _genDebrisPts(x + w / 2, y + h / 2, w / 2, h / 2);
+    if (!this.extra.pts) this.extra.pts = _genDebrisPts(w / 2, h / 2);
     const pts = this.extra.pts;
+    const cx = x + w / 2, cy = y + h / 2;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.moveTo(cx + pts[0].x, cy + pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(cx + pts[i].x, cy + pts[i].y);
     ctx.closePath();
     ctx.fillStyle = '#778';
     ctx.fill();
@@ -406,11 +429,11 @@ class Obstacle extends Entity {
   _drawAsteroid(ctx) {
     const { x, y, width: w, height: h } = this;
     const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h) / 2;
-    if (!this.extra.apts) this.extra.apts = _genAsteroidPts(cx, cy, r);
+    if (!this.extra.apts) this.extra.apts = _genAsteroidPts(r);
     const pts = this.extra.apts;
     ctx.beginPath();
-    ctx.moveTo(pts[0].x, pts[0].y);
-    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.moveTo(cx + pts[0].x, cy + pts[0].y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(cx + pts[i].x, cy + pts[i].y);
     ctx.closePath();
     ctx.fillStyle = '#8B7355'; ctx.fill();
     ctx.strokeStyle = '#6B5335'; ctx.lineWidth = 1; ctx.stroke();
@@ -477,22 +500,22 @@ class Obstacle extends Entity {
   }
 }
 
-function _genDebrisPts(cx, cy, rx, ry) {
+function _genDebrisPts(rx, ry) {
   const pts = [], n = 7;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
     const r = 0.55 + Math.random() * 0.45;
-    pts.push({ x: cx + Math.cos(a) * rx * r, y: cy + Math.sin(a) * ry * r });
+    pts.push({ x: Math.cos(a) * rx * r, y: Math.sin(a) * ry * r });
   }
   return pts;
 }
 
-function _genAsteroidPts(cx, cy, r) {
+function _genAsteroidPts(r) {
   const pts = [], n = 12;
   for (let i = 0; i < n; i++) {
     const a = (i / n) * Math.PI * 2;
     const rad = r * (0.72 + Math.random() * 0.28);
-    pts.push({ x: cx + Math.cos(a) * rad, y: cy + Math.sin(a) * rad });
+    pts.push({ x: Math.cos(a) * rad, y: Math.sin(a) * rad });
   }
   return pts;
 }
@@ -570,8 +593,15 @@ class Collectible extends Entity {
 
 // ── PLAYER ─────────────────────────────────────────────────────────────────
 function getHitbox() {
-  const pw = player.width * HITBOX_SCALE, ph = player.height * HITBOX_SCALE;
-  return { x: player.x + (player.width - pw) / 2, y: player.y + (player.height - ph) / 2, width: pw, height: ph };
+  // Hitbox covers fuselage only (not fins). Height = ~40% of total fin-to-fin span.
+  const hbW = player.width  * HITBOX_SCALE;
+  const hbH = Math.round(player.height * 0.4); // fuselage + small margin, fins excluded
+  return {
+    x:      player.x + (player.width  - hbW) / 2,
+    y:      player.y + (player.height - hbH) / 2,
+    width:  hbW,
+    height: hbH,
+  };
 }
 
 function updatePlayer(dt) {
@@ -600,52 +630,117 @@ function drawPlayer(ctx) {
     const flashPhase = Math.floor(player.invincibleTimer / INVINCIBLE_FLASH_RATE) % 2;
     ctx.globalAlpha = flashPhase === 0 ? 1.0 : 0.3;
   }
-  const { x, y, width: w, height: h } = player;
-  const thrusting = input.thrust;
 
-  // engine bell (left side — thruster pushes ship rightward)
-  ctx.fillStyle = '#888';
+  const { x, y, width: W, height: H } = player;
+  const cy    = y + H / 2;     // vertical centreline
+  const fh    = 12;            // fuselage diameter (cylinder cross-section)
+  const fTop  = cy - fh / 2;  // fuselage top edge
+  const fBot  = cy + fh / 2;  // fuselage bottom edge
+  const r     = fh / 2;       // nose-cap radius
+  const bodyW = W - r;        // fuselage rect length (arc adds the last r)
+
+  // ── A. AFT DELTA FINS (drawn first so fuselage overlaps roots) ──
+  ctx.fillStyle   = '#B0B0B0';
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth   = 0.5;
+  // Top aft fin — wide at engine end, tapers toward nose
   ctx.beginPath();
-  ctx.moveTo(x, y + h * 0.3);
-  ctx.lineTo(x - 9, y + h * 0.15);
-  ctx.lineTo(x - 9, y + h * 0.85);
-  ctx.lineTo(x, y + h * 0.7);
-  ctx.closePath(); ctx.fill();
+  ctx.moveTo(x,      fTop);
+  ctx.lineTo(x,      fTop - 16);
+  ctx.lineTo(x + 30, fTop - 3);
+  ctx.lineTo(x + 30, fTop);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Bottom aft fin — mirror
+  ctx.beginPath();
+  ctx.moveTo(x,      fBot);
+  ctx.lineTo(x,      fBot + 16);
+  ctx.lineTo(x + 30, fBot + 3);
+  ctx.lineTo(x + 30, fBot);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
 
-  // engine glow (left side)
-  if (thrusting) {
-    const gx = x - 12, gy = y + h / 2;
-    const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, 22);
-    grad.addColorStop(0, 'rgba(100,180,255,0.95)');
-    grad.addColorStop(0.4, 'rgba(0,100,255,0.6)');
-    grad.addColorStop(1, 'rgba(0,0,200,0)');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.ellipse(gx, gy, 22, 10, 0, 0, Math.PI * 2); ctx.fill();
+  // ── B. FUSELAGE (stainless steel cylinder, gradient engine→nose) ─
+  const grad = ctx.createLinearGradient(x, 0, x + W, 0);
+  grad.addColorStop(0,    '#888888'); // engine / heat-shield end
+  grad.addColorStop(0.12, '#A8A8A8');
+  grad.addColorStop(0.4,  '#C8C8C8');
+  grad.addColorStop(1,    '#E0E0E0'); // bright silver nose
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(x,         fTop);
+  ctx.lineTo(x + bodyW, fTop);
+  ctx.arc(x + bodyW, cy, r, -Math.PI / 2, Math.PI / 2); // blunt nose dome
+  ctx.lineTo(x,         fBot);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 0.5; ctx.stroke();
+
+  // ── C. FORWARD CANARD FINS (small, near nose end) ────────────────
+  ctx.fillStyle   = '#B8B8B8';
+  ctx.strokeStyle = '#909090';
+  ctx.lineWidth   = 0.5;
+  // Top canard — forward-swept trapezoid
+  ctx.beginPath();
+  ctx.moveTo(x + 52, fTop);
+  ctx.lineTo(x + 52, fTop - 8);
+  ctx.lineTo(x + 66, fTop - 5);
+  ctx.lineTo(x + 66, fTop);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Bottom canard — mirror
+  ctx.beginPath();
+  ctx.moveTo(x + 52, fBot);
+  ctx.lineTo(x + 52, fBot + 8);
+  ctx.lineTo(x + 66, fBot + 5);
+  ctx.lineTo(x + 66, fBot);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // ── D. PANEL LINES (subtle steel sections across fuselage) ────────
+  ctx.save();
+  ctx.globalAlpha *= 0.4;
+  ctx.strokeStyle = '#707070';
+  ctx.lineWidth   = 1;
+  [x + 16, x + 32, x + 48].forEach(px => {
+    ctx.beginPath();
+    ctx.moveTo(px, fTop + 1);
+    ctx.lineTo(px, fBot - 1);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // ── E. NOSE DOME (slightly different tint for blunt cap) ──────────
+  ctx.fillStyle = '#D0D0D0';
+  ctx.beginPath();
+  ctx.arc(x + bodyW, cy, r, -Math.PI / 2, Math.PI / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // ── F. ENGINE GLOW (Raptor cluster, only when thrusting) ─────────
+  if (input.thrust) {
+    const pulse = 1 + Math.sin(Date.now() * 0.02) * 0.15;
+    // Exhaust plume radial gradient extending left from engine end
+    const plume = ctx.createRadialGradient(x, cy, 0, x, cy, 30 * pulse);
+    plume.addColorStop(0,    'rgba(200,235,255,0.75)');
+    plume.addColorStop(0.35, 'rgba(80,160,255,0.45)');
+    plume.addColorStop(1,    'rgba(0,40,200,0)');
+    ctx.fillStyle = plume;
+    ctx.beginPath();
+    ctx.ellipse(x - 12 * pulse, cy, 30 * pulse, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // 3 Raptor engine nozzle glows (stacked vertically)
+    [-4, 0, 4].forEach(oy => {
+      const ng = ctx.createRadialGradient(x, cy + oy, 0, x, cy + oy, 5 * pulse);
+      ng.addColorStop(0,   'rgba(255,255,255,1)');
+      ng.addColorStop(0.5, 'rgba(160,215,255,0.85)');
+      ng.addColorStop(1,   'rgba(40,100,255,0)');
+      ctx.fillStyle = ng;
+      ctx.beginPath();
+      ctx.arc(x, cy + oy, 5 * pulse, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
-
-  // main body
-  ctx.fillStyle = '#dde';
-  ctx.beginPath();
-  ctx.moveTo(x, y + 5);
-  ctx.lineTo(x + w * 0.65, y);
-  ctx.lineTo(x + w, y + h * 0.28);
-  ctx.lineTo(x + w, y + h * 0.72);
-  ctx.lineTo(x + w * 0.65, y + h);
-  ctx.lineTo(x, y + h - 5);
-  ctx.closePath(); ctx.fill();
-
-  // nose accent
-  ctx.fillStyle = '#bbc';
-  ctx.beginPath();
-  ctx.moveTo(x + w * 0.65, y);
-  ctx.lineTo(x + w, y + h * 0.28);
-  ctx.lineTo(x + w, y + h * 0.72);
-  ctx.lineTo(x + w * 0.65, y + h);
-  ctx.closePath(); ctx.fill();
-
-  // seam line
-  ctx.strokeStyle = '#99a'; ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.moveTo(x + w * 0.25, y + 5); ctx.lineTo(x + w * 0.25, y + h - 5); ctx.stroke();
 
   ctx.globalAlpha = 1;
 }
@@ -718,11 +813,20 @@ function safeSpawnY(h) {
   return 40 + Math.random() * Math.max(1, CANVAS_HEIGHT - 80 - h);
 }
 
+function _hasSpawnRoom() {
+  if (obstacles.length === 0) return true;
+  const spawnX = CANVAS_WIDTH + 20;
+  const rightmostX = Math.max(...obstacles.map(
+    o => o.x + (o.type === 'PAPERWORK' ? PAPERWORK_W : o.width)
+  ));
+  return rightmostX <= spawnX - MIN_OBSTACLE_SPACING;
+}
+
 function spawnTick(dt) {
   spawnTimer += dt;
   let interval = Math.max(SPAWN_INTERVAL_BASE / gameSpeed, SPAWN_INTERVAL_MIN);
   if (solarStormActive) interval /= 1.3;
-  if (spawnTimer >= interval) {
+  if (spawnTimer >= interval && _hasSpawnRoom()) {
     spawnTimer = 0;
     Math.random() < OBSTACLE_PROBABILITY ? _spawnObstaclePattern() : _spawnCollectible();
   }
@@ -765,13 +869,25 @@ function _spawnObstacle(x, forcedY) {
     playRoadsterChord();
     return;
   }
-  const type = OBS_BASE_TYPES[Math.floor(Math.random() * OBS_BASE_TYPES.length)];
-  if (type === 'PAPERWORK') { _spawnPaperwork(x); return; }
+  let type = OBS_BASE_TYPES[Math.floor(Math.random() * OBS_BASE_TYPES.length)];
+  if (type === 'PAPERWORK') {
+    if (_canSpawnPaperwork(x)) { _spawnPaperwork(x); return; }
+    // too close to an existing wall — pick a floating obstacle instead
+    const fallbacks = ['DEBRIS', 'SATELLITE', 'ASTEROID'];
+    type = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  }
   const w = type === 'DEBRIS' ? 28 + Math.random() * 30 : type === 'SATELLITE' ? 70 : 40 + Math.random() * 38;
   const h = type === 'DEBRIS' ? 18 + Math.random() * 28 : type === 'SATELLITE' ? 40 : 40 + Math.random() * 38;
   const sp = type === 'DEBRIS' ? -300 : type === 'SATELLITE' ? -180 : -250;
   const y = forcedY !== null ? forcedY : safeSpawnY(h);
   obstacles.push(new Obstacle(x, y, w, h, sp, type));
+}
+
+function _canSpawnPaperwork(x) {
+  const walls = obstacles.filter(o => o.type === 'PAPERWORK');
+  if (walls.length === 0) return true;
+  const rightmostWall = Math.max(...walls.map(o => o.x + PAPERWORK_W));
+  return rightmostWall <= x - MIN_PAPERWORK_SPACING;
 }
 
 function _spawnPaperwork(x) {
@@ -1041,14 +1157,116 @@ function renderTitle(ctx) {
 
 function _drawTitleShip(ctx, cx, cy) {
   ctx.save();
-  ctx.fillStyle = '#778'; ctx.strokeStyle = '#99a'; ctx.lineWidth = 1.5;
+
+  // Vertical Starship — nose UP, engine DOWN
+  // Same geometry as the gameplay sprite, rotated 90°
+  const r      = 7;           // nose-cap / corner radius (= fh/2)
+  const fLeft  = cx - r;     // fuselage left edge
+  const fRight = cx + r;     // fuselage right edge
+  const top    = cy - 55;    // bounding-box top (nose dome apex lives here)
+  const bot    = cy + 35;    // engine end y
+
+  // ── A. AFT DELTA FINS (drawn first; fuselage overlaps roots) ─────
+  ctx.fillStyle   = '#B0B0B0';
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth   = 0.8;
+  // Left fin — wide at engine end, tapering up
   ctx.beginPath();
-  ctx.moveTo(cx, cy - 52); ctx.lineTo(cx + 16, cy - 12);
-  ctx.lineTo(cx + 16, cy + 28); ctx.lineTo(cx - 16, cy + 28); ctx.lineTo(cx - 16, cy - 12);
-  ctx.closePath(); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#556'; ctx.fillRect(cx - 9, cy + 28, 18, 14);
-  ctx.fillStyle = 'rgba(80,160,255,0.45)';
-  ctx.beginPath(); ctx.ellipse(cx, cy + 46, 14, 7, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.moveTo(fLeft,      bot);
+  ctx.lineTo(fLeft - 20, bot);
+  ctx.lineTo(fLeft - 4,  bot - 35);
+  ctx.lineTo(fLeft,      bot - 35);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Right fin — mirror
+  ctx.beginPath();
+  ctx.moveTo(fRight,      bot);
+  ctx.lineTo(fRight + 20, bot);
+  ctx.lineTo(fRight + 4,  bot - 35);
+  ctx.lineTo(fRight,      bot - 35);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // ── B. FUSELAGE (stainless steel gradient, nose-end lighter) ─────
+  const grad = ctx.createLinearGradient(cx, top, cx, bot);
+  grad.addColorStop(0,    '#E0E0E0'); // nose — bright silver
+  grad.addColorStop(0.45, '#C8C8C8');
+  grad.addColorStop(0.88, '#A8A8A8');
+  grad.addColorStop(1,    '#888888'); // engine end — dark
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.moveTo(fLeft, top + r);
+  // Nose dome — arc CW from left through apex (top) to right
+  ctx.arc(cx, top + r, r, Math.PI, 0, false);
+  ctx.lineTo(fRight, bot);
+  ctx.lineTo(fLeft,  bot);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = '#888'; ctx.lineWidth = 0.8; ctx.stroke();
+
+  // ── C. FORWARD CANARD FINS (small, near nose) ────────────────────
+  ctx.fillStyle   = '#B8B8B8';
+  ctx.strokeStyle = '#909090';
+  ctx.lineWidth   = 0.8;
+  // Left canard
+  ctx.beginPath();
+  ctx.moveTo(fLeft,      bot - 60);
+  ctx.lineTo(fLeft - 10, bot - 60);
+  ctx.lineTo(fLeft - 7,  bot - 78);
+  ctx.lineTo(fLeft,      bot - 78);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Right canard — mirror
+  ctx.beginPath();
+  ctx.moveTo(fRight,      bot - 60);
+  ctx.lineTo(fRight + 10, bot - 60);
+  ctx.lineTo(fRight + 7,  bot - 78);
+  ctx.lineTo(fRight,      bot - 78);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // ── D. PANEL LINES (horizontal seams across fuselage) ────────────
+  ctx.save();
+  ctx.globalAlpha = 0.4;
+  ctx.strokeStyle = '#707070';
+  ctx.lineWidth   = 1;
+  [bot - 22, bot - 44, bot - 66].forEach(py => {
+    ctx.beginPath();
+    ctx.moveTo(fLeft  + 1, py);
+    ctx.lineTo(fRight - 1, py);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  // ── E. NOSE DOME ACCENT (blunt rounded tip) ───────────────────────
+  ctx.fillStyle = '#D0D0D0';
+  ctx.beginPath();
+  ctx.arc(cx, top + r, r, Math.PI, 0, false);
+  ctx.closePath();
+  ctx.fill();
+
+  // ── F. ENGINE IDLE GLOW (Raptor cluster at base) ─────────────────
+  // Diffuse exhaust cone below engine end
+  const plume = ctx.createRadialGradient(cx, bot + 4, 2, cx, bot + 4, 24);
+  plume.addColorStop(0,   'rgba(220,240,255,0.9)');
+  plume.addColorStop(0.4, 'rgba(80,160,255,0.5)');
+  plume.addColorStop(1,   'rgba(0,40,200,0)');
+  ctx.fillStyle = plume;
+  ctx.beginPath();
+  ctx.ellipse(cx, bot + 8, 24, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // 3 nozzle hot spots
+  [-4, 0, 4].forEach(ox => {
+    const ng = ctx.createRadialGradient(cx + ox, bot, 0, cx + ox, bot, 5);
+    ng.addColorStop(0,   'rgba(255,255,255,0.95)');
+    ng.addColorStop(0.5, 'rgba(180,225,255,0.7)');
+    ng.addColorStop(1,   'rgba(40,100,255,0)');
+    ctx.fillStyle = ng;
+    ctx.beginPath();
+    ctx.arc(cx + ox, bot, 5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
   ctx.restore();
 }
 
