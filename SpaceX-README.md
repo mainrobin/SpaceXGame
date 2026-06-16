@@ -137,6 +137,8 @@ Or just double-click `index.html` in your file manager.
 | Safari 15+ | Fully supported |
 | Mobile Chrome/Safari | Supported -- landscape orientation recommended |
 
+Run remotely https://game.devcortexai.com
+
 ---
 
 ## Built with DevCortex
