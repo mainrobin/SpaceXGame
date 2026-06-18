@@ -287,22 +287,48 @@ function playRoadsterChord() {
     if (!ctx) return;
     const _play = () => {
       try {
-        [329.63, 415.30, 493.88].forEach(freq => {
-          const len = Math.floor(ctx.sampleRate * 0.6);
-          const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-          const data = buf.getChannelData(0);
-          for (let i = 0; i < len; i++) {
-            data[i] = Math.sin(2 * Math.PI * freq * (i / ctx.sampleRate)) *
-                      Math.pow(1 - i / len, 0.5) * 0.3;
-          }
-          const src = ctx.createBufferSource();
-          src.buffer = buf;
-          const g = ctx.createGain();
-          g.gain.value = 0.5;
-          src.connect(g);
-          g.connect(ctx.destination);
-          src.start();
-        });
+        const now = ctx.currentTime;
+        const startDelay = 0.1;
+        const peakTime   = startDelay + 0.6;
+        const duration   = startDelay + 1.8;
+
+        const oscSaw = ctx.createOscillator();
+        const oscTri = ctx.createOscillator();
+        oscSaw.type = 'sawtooth';
+        oscTri.type = 'triangle';
+
+        // RPM curve: idle -> redline -> return to idle
+        oscSaw.frequency.setValueAtTime(60, now);
+        oscSaw.frequency.exponentialRampToValueAtTime(280, now + peakTime);
+        oscSaw.frequency.exponentialRampToValueAtTime(80,  now + duration);
+
+        // Sub-bass one octave lower
+        oscTri.frequency.setValueAtTime(30, now);
+        oscTri.frequency.exponentialRampToValueAtTime(140, now + peakTime);
+        oscTri.frequency.exponentialRampToValueAtTime(40,  now + duration);
+
+        // Lowpass filter mimics muffler/car body, opens during acceleration
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(400, now);
+        filter.frequency.exponentialRampToValueAtTime(1000, now + peakTime);
+        filter.frequency.exponentialRampToValueAtTime(300,  now + duration);
+
+        // Volume envelope: quiet start, throttle peak, fade out
+        const gainNode = ctx.createGain();
+        gainNode.gain.setValueAtTime(0.001, now);
+        gainNode.gain.linearRampToValueAtTime(0.3,   now + peakTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+        oscSaw.connect(filter);
+        oscTri.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(ctx.destination);
+
+        oscSaw.start(now);
+        oscTri.start(now);
+        oscSaw.stop(now + duration);
+        oscTri.stop(now + duration);
       } catch (e2) {}
     };
     if (ctx.state === 'running') { _play(); }
