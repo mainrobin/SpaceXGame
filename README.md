@@ -198,6 +198,14 @@ If you find an issue, open a new issue with your browser version, OS, and steps 
 
 ---
 
+## Support
+
+SpaceX: Mission to Mars is free and open source. If you find it fun or useful, a coffee is always appreciated.
+
+[![Buy Me A Coffee](https://www.buymeacoffee.com/assets/img/custom_images/yellow_img.png)](https://buymeacoffee.com/azuli)
+
+---
+
 ## Licence
 
 MIT -- see LICENSE for details.
